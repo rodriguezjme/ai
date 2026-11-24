@@ -100,6 +100,7 @@ function dashboard({ user, participants, drawDone, receiver, sentHints, received
 <section class="card">
   <h2>Participantes</h2>
   <ul class="people">${list}</ul>
+  ${user.is_admin ? `<form method="post" action="/reenviar" onsubmit="return confirm('¿Reenviar a todas el email con su amiga invisible?')"><button class="link" style="margin-top:12px">✉️ Reenviar emails del sorteo</button></form>` : ''}
 </section>`;
 }
 

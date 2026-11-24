@@ -141,6 +141,25 @@ app.post('/sorteo', requireUser(async (req, res) => {
     return res.redirect('/');
   }
 
+  const failed = await sendAssignmentEmails(pairs);
+  flash(req, failed ? 'error' : 'ok', failed
+    ? `Sorteo hecho, pero ${failed} email(s) no se pudieron enviar. Igual cada una puede ver su asignación entrando al sitio.`
+    : '¡Sorteo hecho! A cada una le llegó un email con su amiga invisible.');
+  res.redirect('/');
+}));
+
+// Reenvía los emails del sorteo (por si fallaron)
+app.post('/reenviar', requireUser(async (req, res) => {
+  if (!req.user.is_admin) { flash(req, 'error', 'Solo quien organiza puede reenviar los emails.'); return res.redirect('/'); }
+  const rows = await all(`SELECT g.name AS gname, g.email AS gemail, r.name AS rname
+    FROM assignments a JOIN users g ON g.id = a.giver_id JOIN users r ON r.id = a.receiver_id`);
+  if (!rows.length) { flash(req, 'error', 'Todavía no se hizo el sorteo.'); return res.redirect('/'); }
+  const failed = await sendAssignmentEmails(rows.map((x) => ({ giver: { name: x.gname, email: x.gemail }, receiver: { name: x.rname } })));
+  flash(req, failed ? 'error' : 'ok', failed ? `${failed} email(s) no se pudieron enviar. Revisá los logs.` : 'Emails del sorteo reenviados a todas ✉️');
+  res.redirect('/');
+}));
+
+async function sendAssignmentEmails(pairs) {
   const results = await Promise.allSettled(pairs.map(({ giver, receiver }) => sendMail({
     to: giver.email,
     subject: '🎁 Tu amiga invisible',
@@ -149,11 +168,8 @@ app.post('/sorteo', requireUser(async (req, res) => {
   })));
   const failed = results.filter((r) => r.status === 'rejected');
   failed.forEach((r) => console.error('Error enviando email:', r.reason));
-  flash(req, failed.length ? 'error' : 'ok', failed.length
-    ? `Sorteo hecho, pero ${failed.length} email(s) no se pudieron enviar. Igual cada una puede ver su asignación entrando al sitio.`
-    : '¡Sorteo hecho! A cada una le llegó un email con su amiga invisible.');
-  res.redirect('/');
-}));
+  return failed.length;
+}
 
 app.post('/pistas', requireUser(async (req, res) => {
   const text = String(req.body.text || '').trim().slice(0, 500);
