@@ -4,10 +4,15 @@ Sitio web (pensado para usar desde el celular) para que un grupo de amigas juegu
 
 ## Cómo funciona
 
-1. Cada participante se registra con **nombre, email y contraseña**.
-2. La **organizadora** (la primera en registrarse, o el email de `ADMIN_EMAIL`) ve el botón **🎲 Hacer el sorteo** cuando hay al menos 3 participantes.
-3. El sorteo arma una ronda al azar: cada una le regala a la siguiente. Nadie se toca a sí misma y no hay parejas cruzadas. A cada una le llega un **email** con su asignación. Después del sorteo se cierra el registro.
-4. Cada participante entra con su email y contraseña, ve **a quién le regala** y puede mandarle **pistas anónimas**. La destinataria recibe la pista por email y la ve en su panel, sin saber quién la mandó.
+1. El **administrador** entra a `/admin` con la contraseña `ADMIN_PASSWORD` y crea un juego con: **nombre**, **email para la invitación** y **cantidad de jugadoras**.
+2. El nombre define la dirección del juego: "Navidad Amigas 2026" → `/navidad-amigas-2026`. Al email le llega una invitación con ese link para compartirlo con el grupo.
+3. Cada participante se registra en ese link con **nombre, email y contraseña**. Cada juego es independiente: jugadoras, sorteo y pistas no se mezclan, y la misma persona puede estar en varios juegos.
+4. Cuando se registra la última, **el sorteo se hace solo**: una ronda al azar donde cada una le regala a la siguiente (nadie se toca a sí misma, no hay parejas cruzadas). A cada una le llega un **email** con su asignación.
+5. Cada una entra a su juego, ve **a quién le regala** y le manda **pistas anónimas**, que le llegan por email y aparecen en su panel.
+
+Desde el panel, el administrador ve el estado de cada juego y puede reenviar la invitación, sortear antes de que se complete (con al menos 3), reenviar los emails del sorteo o borrar el juego.
+
+Si la base tenía el juego de la primera versión, se migra solo a `/primer-juego` con sus jugadoras, sorteo y pistas.
 
 ## Tecnología
 
@@ -43,14 +48,12 @@ Pasos:
 
 1. **Turso**: creá una base (`turso db create amigo-invisible`), y copiá la URL (`turso db show amigo-invisible --url`) y un token (`turso db tokens create amigo-invisible`). También se puede hacer desde la web de Turso.
 2. **Brevo**: registrate en https://www.brevo.com. En *Senders, Domains & Dedicated IPs → Senders* agregá y verificá tu email (te llega un código). En *SMTP & API → API Keys* creá una clave: esa es tu `BREVO_API_KEY`.
-3. **Render**: New → Web Service → conectá el repo. Build command: `npm install`. Start command: `npm start`. En *Environment* cargá: `NODE_ENV=production`, `SESSION_SECRET` (una frase larga al azar), `SITE_URL` (la URL que te da Render), `DATABASE_URL`, `DATABASE_AUTH_TOKEN`, `BREVO_API_KEY`, `MAIL_FROM` (ej. `Amigo Invisible <tu email verificado en Brevo>`) y, si querés, `GROUP_CODE`.
-4. Pasales el link a tus amigas. La organizadora se registra primero.
+3. **Render**: New → Web Service → conectá el repo. Build command: `npm install`. Start command: `npm start`. En *Environment* cargá: `NODE_ENV=production`, `SESSION_SECRET` (una frase larga al azar), `SITE_URL` (la URL que te da Render), `DATABASE_URL`, `DATABASE_AUTH_TOKEN`, `BREVO_API_KEY`, `MAIL_FROM` (ej. `Amigo Invisible <tu email verificado en Brevo>`) y `ADMIN_PASSWORD` (la contraseña del panel de administrador).
+4. Entrá a `/admin`, creá el juego y listo.
 
 Nota: en el plan gratis de Render el sitio "se duerme" si nadie lo usa por 15 minutos; la primera visita después tarda unos 30–50 segundos en cargar. Los datos no se pierden porque están en Turso.
 
 Por qué Brevo y no Gmail: el plan gratis de Render bloquea el envío por SMTP, así que los emails se mandan por la API HTTP de Brevo. En otro hosting también funciona SMTP (variables `SMTP_*`).
-
-Si los emails del sorteo no llegaron, la organizadora tiene un botón **✉️ Reenviar emails del sorteo** en su panel.
 
 ## Variables de entorno
 
