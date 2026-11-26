@@ -22,22 +22,22 @@ const smtp = !BREVO_KEY && process.env.SMTP_HOST
     })
   : null;
 
-async function sendMail({ to, subject, text, html }) {
+async function sendMail({ to, subject, text, html, replyTo }) {
   if (BREVO_KEY) {
     const res = await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
       headers: { 'api-key': BREVO_KEY, 'content-type': 'application/json', accept: 'application/json' },
-      body: JSON.stringify({ sender: parseFrom(FROM), to: [{ email: to }], subject, htmlContent: html, textContent: text }),
+      body: JSON.stringify({ sender: parseFrom(FROM), to: [{ email: to }], subject, htmlContent: html, textContent: text, ...(replyTo ? { replyTo: { email: replyTo } } : {}) }),
       signal: AbortSignal.timeout(15000),
     });
     if (!res.ok) throw new Error(`Brevo respondió ${res.status}: ${await res.text()}`);
     return;
   }
   if (smtp) {
-    await smtp.sendMail({ from: FROM, to, subject, text, html });
+    await smtp.sendMail({ from: FROM, to, subject, text, html, ...(replyTo ? { replyTo } : {}) });
     return;
   }
-  console.log(`\n--- EMAIL (modo prueba, email sin configurar) ---\nPara: ${to}\nAsunto: ${subject}\n${text}\n------------------------------------------------\n`);
+  console.log(`\n--- EMAIL (modo prueba, email sin configurar) ---\nPara: ${to}${replyTo ? `\nResponder a: ${replyTo}` : ''}\nAsunto: ${subject}\n${text}\n------------------------------------------------\n`);
 }
 
 module.exports = { sendMail, mailConfigured: !!(BREVO_KEY || smtp) };

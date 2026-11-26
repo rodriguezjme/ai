@@ -104,7 +104,46 @@ async function resendAssignments(game) {
 }
 
 // ---------- Inicio ----------
+// La web promocional es public/index.html (la sirve express.static en "/"). Esto queda de respaldo.
 app.get('/', (req, res) => render(req, res, { title: 'Inicio', body: views.home() }));
+
+// ---------- Formulario de inicio de juego (web promocional) ----------
+// Los pedidos llegan al correo de CONTACT_EMAIL. El correo solo vive en esa variable de entorno: nunca aparece en la web.
+const CONTACT_EMAIL = process.env.CONTACT_EMAIL || '';
+const requestLog = new Map(); // ip -> [timestamps], límite simple contra spam
+function tooMany(ip) {
+  const now = Date.now(), hour = 60 * 60 * 1000;
+  const list = (requestLog.get(ip) || []).filter((t) => now - t < hour);
+  list.push(now); requestLog.set(ip, list);
+  return list.length > 5;
+}
+
+app.post('/solicitar', wrap(async (req, res) => {
+  const wantsJson = (req.get('accept') || '').includes('application/json');
+  const reply = (status, ok, msg) => wantsJson
+    ? res.status(status).json(ok ? { ok: true } : { ok: false, error: msg })
+    : res.status(status).send(views.layout({ title: ok ? 'Pedido recibido' : 'Error', body: `<section class="card center"><h1>${ok ? '¡Listo! Recibimos tu pedido' : 'No se pudo enviar'}</h1><p>${views.esc(ok ? 'En breve recibirás las instrucciones para empezar a jugar.' : msg)}</p><a class="btn" href="/">Volver</a></section>` }));
+
+  if (req.body.web) return reply(200, true); // trampa para bots
+  const descripcion = String(req.body.descripcion || '').trim().slice(0, 600);
+  const participantes = Number.parseInt(req.body.participantes, 10);
+  const email = String(req.body.email || '').trim().toLowerCase().slice(0, 200);
+  if (!descripcion) return reply(400, false, 'Escribí una breve descripción del juego.');
+  if (!Number.isInteger(participantes) || participantes < MIN_PLAYERS || participantes > 100) return reply(400, false, `La cantidad de participantes tiene que ser entre ${MIN_PLAYERS} y 100.`);
+  if (!isEmail(email)) return reply(400, false, 'Revisá el email del organizador.');
+  if (tooMany(req.ip)) return reply(429, false, 'Recibimos varios pedidos seguidos. Probá de nuevo en un rato.');
+  if (!CONTACT_EMAIL) { console.error('Falta CONTACT_EMAIL: no se puede reenviar el pedido de juego.'); return reply(500, false, 'No se pudo enviar. Probá de nuevo en un rato.'); }
+
+  const failed = await sendAll([{
+    to: CONTACT_EMAIL,
+    replyTo: email,
+    subject: `🎁 Nuevo pedido de amigo invisible (${participantes} participantes)`,
+    text: `Llegó un pedido desde el formulario de inicio de juego.\n\nDescripción:\n${descripcion}\n\nParticipantes: ${participantes}\nEmail del organizador: ${email}\n\nPara crear el juego entrá a ${SITE_URL}/admin y usá ese email para la invitación.`,
+    html: `<p>Llegó un pedido desde el formulario de inicio de juego.</p><p><b>Descripción:</b><br>${views.esc(descripcion).replace(/\n/g, '<br>')}</p><p><b>Participantes:</b> ${participantes}<br><b>Email del organizador:</b> ${views.esc(email)}</p><p>Para crear el juego entrá a <a href="${SITE_URL}/admin">${SITE_URL}/admin</a> y usá ese email para la invitación.</p>`,
+  }]);
+  if (failed) return reply(502, false, 'No se pudo enviar. Probá de nuevo en un rato.');
+  return reply(200, true);
+}));
 
 // ---------- Administrador ----------
 const adminOnly = (fn) => wrap(async (req, res, next) => {

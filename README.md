@@ -14,6 +14,10 @@ Desde el panel, el administrador ve el estado de cada juego y puede reenviar la 
 
 Si la base tenía el juego de la primera versión, se migra solo a `/primer-juego` con sus jugadoras, sorteo y pistas.
 
+## Web promocional y pedidos de juego
+
+La portada (`/`) es la web promocional (`public/index.html`). Tiene un formulario de inicio de juego: descripción, cantidad de participantes y email del organizador. Al enviarlo, la app manda los datos por email al correo de `CONTACT_EMAIL` (el correo no aparece en la web; responder ese email le contesta directo al organizador). Con esos datos creás el juego en `/admin` usando el email del organizador para la invitación.
+
 ## Tecnología
 
 - **Node.js + Express**, páginas generadas en el servidor (sin frameworks de frontend).
@@ -48,7 +52,7 @@ Pasos:
 
 1. **Turso**: creá una base (`turso db create amigo-invisible`), y copiá la URL (`turso db show amigo-invisible --url`) y un token (`turso db tokens create amigo-invisible`). También se puede hacer desde la web de Turso.
 2. **Brevo**: registrate en https://www.brevo.com. En *Senders, Domains & Dedicated IPs → Senders* agregá y verificá tu email (te llega un código). En *SMTP & API → API Keys* creá una clave: esa es tu `BREVO_API_KEY`.
-3. **Render**: New → Web Service → conectá el repo. Build command: `npm install`. Start command: `npm start`. En *Environment* cargá: `NODE_ENV=production`, `SESSION_SECRET` (una frase larga al azar), `SITE_URL` (la URL que te da Render), `DATABASE_URL`, `DATABASE_AUTH_TOKEN`, `BREVO_API_KEY`, `MAIL_FROM` (ej. `Amigo Invisible <tu email verificado en Brevo>`) y `ADMIN_PASSWORD` (la contraseña del panel de administrador).
+3. **Render**: New → Web Service → conectá el repo. Build command: `npm install`. Start command: `npm start`. En *Environment* cargá: `NODE_ENV=production`, `SESSION_SECRET` (una frase larga al azar), `SITE_URL` (la URL que te da Render), `DATABASE_URL`, `DATABASE_AUTH_TOKEN`, `BREVO_API_KEY`, `MAIL_FROM` (ej. `Amigo Invisible <tu email verificado en Brevo>`), `ADMIN_PASSWORD` (la contraseña del panel de administrador) y `CONTACT_EMAIL` (el correo donde llegan los pedidos del formulario de la portada).
 4. Entrá a `/admin`, creá el juego y listo.
 
 Nota: en el plan gratis de Render el sitio "se duerme" si nadie lo usa por 15 minutos; la primera visita después tarda unos 30–50 segundos en cargar. Los datos no se pierden porque están en Turso.

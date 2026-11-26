@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /solicitar
+
+Sitemap: https://amigo-invisible-7727.onrender.com/sitemap.xml
